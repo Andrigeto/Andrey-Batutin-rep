@@ -1,0 +1,51 @@
+ax3 = pd.read_excel('BICOL.xlsx')
+d = {'col1': [1, 2], 'col2': [3, 4]}
+data = pd.DataFrame(data=d)
+for i in range(len(ax3)):
+    ax1 = pd.read_excel('BICOL.xlsx')
+    fet = ax1[['Локация', 'Центр сбыта', 'Стрим',
+       'Торговая марка', 'Зима/Лето']]
+    ax = ax1[['2021-01-01', '2021-02-01', '2021-03-01',
+       '2021-04-01', '2021-05-01', '2021-06-01', '2021-07-01', '2021-08-01',
+       '2021-09-01', '2021-10-01', '2021-11-01', '2021-12-01', '2022-01-01',
+       '2022-02-01', '2022-03-01', '2022-04-01', '2022-05-01', '2022-06-01',
+       '2022-07-01', '2022-08-01', '2022-09-01', '2022-10-01', '2022-11-01',
+       '2022-12-01', '2023-01-01']]
+    ax = ax.loc[i]
+    fet = fet.loc[i]
+    pd.set_option('max_columns',None)
+    d = {'col1': ax, 'col2': ax.index}
+    df = pd.DataFrame(data=d)
+    df["timestamp"] = pd.to_datetime(df["col2"])
+    df["target"] = df["col1"]
+    df.drop(columns=["col1", "col2"], inplace=True)
+    df["segment"] = "main"
+    df = df.reset_index(drop=True)
+    df = TSDataset.to_dataset(df)
+    ts = TSDataset(df, freq="MS")
+
+    train_ts, test_ts = ts.train_test_split(
+        train_start="2021-01-01",
+        train_end="2022-09-01",
+        test_start="2022-10-01",
+        test_end="2023-03-01",
+    )
+    HORIZON = 12
+
+    lags = LagTransform(in_column="target", lags=12)
+    train_ts.fit_transform([lags])
+
+
+    model = CatBoostMultiSegmentModel()
+    model.fit(train_ts)
+    future_ts = train_ts.make_future(HORIZON)
+    forecast_ts = model.forecast(future_ts)
+    forecast_ts = forecast_ts.loc[:,([('main', 'target')])]
+    forecast_ts.columns=['1']
+    forecast_ts = forecast_ts.reset_index()
+    forecast_ts = forecast_ts.pivot_table(values='1',columns='timestamp')
+
+    fet['key'] = fet['Локация']  + fet['Центр сбыта']  + fet['Стрим']  + fet['Торговая марка']  + fet['Зима/Лето']  
+    forecast_ts['key5'] = fet['key']
+    data = data.append(forecast_ts)
+    #axALL = axALL.merge(forecast_ts,on='key5',how='left')
