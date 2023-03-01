@@ -24,11 +24,10 @@ for i in range(len(ax3)):
     df = TSDataset.to_dataset(df)
     ts = TSDataset(df, freq="MS")
 
-    train_ts, test_ts = ts.train_test_split(
-        train_start="2021-01-01",
-        train_end="2022-09-01",
-        test_start="2022-10-01",
-        test_end="2023-03-01",
+    train_start="2021-01-01",
+    train_end="2023-01-01",
+    test_start="2023-02-01",
+    test_end="2023-03-01",
     )
     HORIZON = 12
 
